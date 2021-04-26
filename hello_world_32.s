@@ -1,4 +1,4 @@
-SECTION .data
+SECTION .rodata
 	msg:		db 'Hello world!',0xA
 	msg_len:	equ $-msg
 
