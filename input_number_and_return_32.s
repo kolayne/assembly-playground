@@ -52,9 +52,9 @@ input_one_byte_integer:
 	; `add` `2` to `esp`? It would take less instructions, but is `esp + 1` evaluation
 	; a separate instruction or not? Which of these is easier to read?
 
-	add esp, 1	; Free the byte used for reading
+	inc esp	; Free the byte used for reading
 	movsx eax, BYTE [esp]	; Set the sum as return value
-	add esp, 1
+	inc esp
 	ret
 
 _start:
