@@ -1,3 +1,7 @@
+SECTION .rodata
+        read_error:             db 'Something went wrong when reading from stdin', 0xA
+        read_error_len:         equ $-read_error
+
 SECTION .text
 	global _start
 
@@ -65,4 +69,12 @@ _start:
 	int 0x80	; Invoke call!
 
 _error:
-	; TODO: Print error and exit with error here
+	mov eax, 4	; The `write` system call
+	mov ebx, 2	; To stderr
+	mov ecx, read_error
+	mov edx, read_error_len
+	int 0x80	; Invoke call!
+
+	mov eax, 1	; Exit
+	mov ebx, 1	; With code 1
+	int 0x80
