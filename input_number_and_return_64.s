@@ -54,12 +54,11 @@ read_integer_from_stdin:
   done_with_input:
 
 	; Would it be better to do `movsx` with `[rsp + 1]` as the first operation and then
-	; `add` `5` to `rsp`? It would take less instructions, but is `rsp + 1` evaluation
-	; a separate instruction or not? Which of these is easier to read?
+	; `add` `5` to `rsp`? It would take less instructions, but does evaluation of `rsp + 1`
+	; take less CPU cycles?; Which of these is easier to read?
 
 	inc rsp	; Free the byte used for reading
-	mov rax, [rsp]	; Set the sum as return value
-	add rsp, 8	; Free the rest of the allocated stack
+	pop rax		; Set sum as return value, free stack
 	ret
 
 _start:
