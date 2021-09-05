@@ -72,7 +72,7 @@ _start:
 	syscall
 
 _error:
-	mov rax, 4	; The `write` system call
+	mov rax, 1	; The `write` system call
 	mov rdi, 2	; To stderr
 	mov rsi, read_error
 	mov rdx, read_error_len
