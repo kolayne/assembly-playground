@@ -19,6 +19,9 @@ nasm -f elf32 -o source_file.o source_file.s
 ld -m elf_i386 -o executable source_file.o
 ```
 
+If you want to produce a smaller executable, you might want to add `-s --nmagic` to linker
+arguments. Read more about their meaning in the manual :)
+
 After that, run the produced `executable` file.
 
 ## Compilation (64-bit)
