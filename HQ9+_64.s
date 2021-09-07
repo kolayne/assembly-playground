@@ -86,6 +86,14 @@ _start:
 	jmp _exit
 
 
+; Functions increments the `rax` pointer until it points to the byte
+; next after the first zero byte found.
+;
+; Input parameters:
+;	rax - pointer to any part of the current cmd-line arguments
+; Changed values of registers:
+;	rax - pointer to the first character of the next cmd-line arg
+;		(return value)
 skip_to_next_cmdline_argument:
 	; Assuming `rax` is set to the current argument's address
 	inc rax
@@ -95,6 +103,7 @@ skip_to_next_cmdline_argument:
 	ret
 
 
+; <Not implemented yet>
 read_source_code:
 	call _open_file_for_read
 	; TODO: probably remove this (currently redundant) logic of
@@ -120,6 +129,15 @@ read_source_code:
 ;; Helper functions
 
 
+; Function prints an error message to stderr
+;
+; Input parameters:
+;	rsi - address of message to be printed
+;	rdx - size of message in bytes
+;
+; Changed values of registers:
+;	rax - result of the `write` system call
+;	rdi - `2`
 _print_error:
 	mov rax, 1	; `write` system call
 	mov rdi, 2	; to `stderr`
@@ -128,12 +146,26 @@ _print_error:
 	syscall
 	ret
 
+; Function exits with a given exit code. It will never return.
+;
+; Input parameters:
+;	rdi - exit code
 _exit:
 	mov rax, 60	; `exit` system call
 	; Assuming `rdi` is already set to an exit code
 	syscall
 
 
+; Function opens a file by the given path for reading. If error occurs,
+; an error message is printed to stderr and the program is terminated
+; with an error code. In case of an error this function won't return.
+;
+; Input parameters:
+;	rdi - address of a NULL-terminated file path string
+;
+; Changed values of registers:
+;	rax - `0`
+;	rsi - `0`
 _open_file_for_read:
 	mov rax, 2	; `open` system call
 	; Assuming `rdi` contains the file name address
@@ -147,6 +179,17 @@ _open_file_for_read:
 
 	ret
 
+; Function retrieves the size of a file by its file descriptor. If an
+; error occurs during the `fstat` system call, an error message is
+; printed to stderr and the program is terminated with an exit code.
+; In case of an error this function won't return.
+;
+; Input parameters:
+;	rdi - Descriptor of the file to get size of
+;
+; Changed values of registers:
+;	rcx - size of the file (return value)
+;	rsi - `rsp-144` (garbage)
 _get_file_size:
 	; Allocate space on stack for `struct stat` (man 2 stat).
 	; Warning: `144` is a value that works on my machine and
@@ -178,6 +221,9 @@ _get_file_size:
 
 
 ;; Functions outputting errors
+
+; All the functions in this section first output an error to stderr
+; and then exit with a non-zero exit code. They never return.
 
 
 start_error_wrong_arguments_number:
