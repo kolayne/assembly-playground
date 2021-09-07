@@ -3,8 +3,8 @@
 
 ; This code uses x86 general-purpose register as follows:
 ; rax - For system calls and runtime (temporary storage)
-; rbx - Unused
-; rcx - Unused
+; rbx - Stores the HQ9+'s counter
+; rcx - Stores the size of the source code
 ; rdx - For system calls
 ; rsi - For system calls
 ; rdi - For system calls and runtime operations (store file name)
@@ -41,6 +41,10 @@ SECTION .rodata
 				db 'descriptor value. This is an ',
 				db 'internal error', 0xA
 	_unexpected_fd_error_len:	equ $-_unexpected_fd_error
+	_fstat_failed_error:	db '`fstat` system call failed for '
+				db 'unknown reason. This is an '
+				db 'internal error', 0xA
+	_fstat_failed_error_len:	equ $-_fstat_failed_error
 
 
 SECTION .text
@@ -71,12 +75,12 @@ _start:
 	call skip_to_next_cmdline_argument
 
 	mov rdi, rax
-	call prepare_source
+	call read_source_code
 
 	; If reached this point, the file has been successfully opened
 	; and the file descriptor is `3`
 
-	; TODO: do logic here
+	;
 
 	mov rdi, 0	; Exit code `0`
 	jmp _exit
@@ -91,18 +95,25 @@ skip_to_next_cmdline_argument:
 	ret
 
 
-prepare_source:
-	mov rax, 2	; `open` system call
-	; Assuming `rdi` contains the file name
-	mov rsi, 0	; `O_RDONLY`
-	; Don't care what lies in `rdx` because new file will never be
-	; created
-	syscall
-
-	cmp rax, 0
-	jl prepare_source_error_cant_open_file
+read_source_code:
+	call _open_file_for_read
+	; TODO: probably remove this (currently redundant) logic of
+	; checking that fd = 3
 	cmp rax, 3
-	jne prepare_source_error_unexpected_fd
+	jne read_source_code_error_unexpected_fd
+
+	; If reached this point, the file is successfully opened and
+	; is assigned a file descriptor `3`
+
+	mov rdi, 3
+	call _get_file_size
+
+	; TODO: allocate memory for the source code
+
+	; TODO: read the source code
+
+	; TODO: close the file
+
 	ret
 
 
@@ -123,6 +134,49 @@ _exit:
 	syscall
 
 
+_open_file_for_read:
+	mov rax, 2	; `open` system call
+	; Assuming `rdi` contains the file name address
+	mov rsi, 0	; `O_RDONLY`
+	; Don't care what lies in `rdx` because new file will never be
+	; created
+	syscall
+
+	cmp rax, 0
+	jl _open_file_for_read_error_cant_open_file
+
+	ret
+
+_get_file_size:
+	; Allocate space on stack for `struct stat` (man 2 stat).
+	; Warning: `144` is a value that works on my machine and
+	; might differ for other machines (for example, might depend
+	; on kernel version)
+	sub rsp, 144
+	mov rax, 5	; `fstat` system call
+	; Assuming `rdi` is set to the file descriptor
+	mov rsi, rsp	; where to put the result
+	syscall
+
+	cmp rax, 0
+	jnz _get_file_size_error_fstat_failed
+
+	; Go to offset `48`, where the file size it located.
+	; Warning: `48` is a value that works on my machine and
+	; might differ for others! -||-
+	add rsp, 48
+	; `pop` the file size.
+	; Warning: the size takes exactly 8 bytes on my machine,
+	; but this might differ for others! -||-
+	pop rcx
+	; Free the rest of `struct stat`
+	; Warning: the structure size on my machine is 48+8+88=144,
+	; but this might differ for other machines! -||-
+	add rsp, 88
+
+	ret
+
+
 ;; Functions outputting errors
 
 
@@ -135,7 +189,7 @@ start_error_wrong_arguments_number:
 	jmp _exit
 
 
-prepare_source_error_cant_open_file:
+_open_file_for_read_error_cant_open_file:
 	mov rsi, _cant_open_file_error
 	mov rdx, _cant_open_file_error_len
 	call _print_error
@@ -143,10 +197,18 @@ prepare_source_error_cant_open_file:
 	mov rdi, -1	; Error code -1
 	jmp _exit
 
-prepare_source_error_unexpected_fd:
+read_source_code_error_unexpected_fd:
 	mov rsi, _unexpected_fd_error
 	mov rdx, _unexpected_fd_error_len
 	call _print_error
 
 	mov rdi, -2	; Error code -2
+	jmp _exit
+
+_get_file_size_error_fstat_failed:
+	mov rsi, _fstat_failed_error
+	mov rdx, _fstat_failed_error_len
+	call _print_error
+
+	mov rdi, -4	; Error code -4
 	jmp _exit
