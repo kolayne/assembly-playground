@@ -126,34 +126,7 @@ read_source_code:
 	ret
 
 
-;; Helper functions
-
-
-; Function prints an error message to stderr
-;
-; Input parameters:
-;	rsi - address of message to be printed
-;	rdx - size of message in bytes
-;
-; Changed values of registers:
-;	rax - result of the `write` system call
-;	rdi - `2`
-_print_error:
-	mov rax, 1	; `write` system call
-	mov rdi, 2	; to `stderr`
-	; Assuming `rsi` is already set to an error message
-	; Assuming `rdx` is already set to the message's length
-	syscall
-	ret
-
-; Function exits with a given exit code. It will never return.
-;
-; Input parameters:
-;	rdi - exit code
-_exit:
-	mov rax, 60	; `exit` system call
-	; Assuming `rdi` is already set to an exit code
-	syscall
+;; Subroutines of `read_source_code`
 
 
 ; Function opens a file by the given path for reading. If error occurs,
@@ -191,7 +164,7 @@ _open_file_for_read:
 ;	rcx - size of the file (return value)
 ;	rsi - `rsp-144` (garbage)
 _get_file_size:
-	; Allocate space on stack for `struct stat` (man 2 stat).
+	; Allocate space on stack for `struct stat` (see `man 2 stat`).
 	; Warning: `144` is a value that works on my machine and
 	; might differ for other machines (for example, might depend
 	; on kernel version)
@@ -218,6 +191,36 @@ _get_file_size:
 	add rsp, 88
 
 	ret
+
+
+;; Helper functions
+
+
+; Function prints an error message to stderr
+;
+; Input parameters:
+;	rsi - address of message to be printed
+;	rdx - size of message in bytes
+;
+; Changed values of registers:
+;	rax - result of the `write` system call
+;	rdi - `2`
+_print_error:
+	mov rax, 1	; `write` system call
+	mov rdi, 2	; to `stderr`
+	; Assuming `rsi` is already set to an error message
+	; Assuming `rdx` is already set to the message's length
+	syscall
+	ret
+
+; Function exits with a given exit code. It will never return.
+;
+; Input parameters:
+;	rdi - exit code
+_exit:
+	mov rax, 60	; `exit` system call
+	; Assuming `rdi` is already set to an exit code
+	syscall
 
 
 ;; Functions outputting errors
